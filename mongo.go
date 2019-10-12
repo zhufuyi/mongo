@@ -13,6 +13,8 @@ import (
 
 var session *mgo.Session
 var dbName string
+
+// ErrNotFound 错误
 var ErrNotFound = mgo.ErrNotFound
 
 // GetSession 获取新的session，使用前先调用函数InitializeMongodb初始化session，否则抛出异常
@@ -25,7 +27,7 @@ func GetSession() Sessioner {
 	//return &DefaultSession{newSession: session.Copy()} // 复制一个新的session，必须手动close，经过并发压测，性能不如session.Clone()好
 }
 
-// InitMongodb 初始化mongodb，如果不指定数据库，默认数据库名为test
+// InitializeMongodb 初始化mongodb，如果不指定数据库，默认数据库名为test
 // 		形式一：localhost 或 localhost:27017
 // 		形式二：mongodb://localhost:27017/database_name 或 mongodb://localhost1:port,localhost2:port/database_name
 // 		形式三：mongodb://user:password@localhost:27017/database_name 或 mongodb://user:password@localhost1:port,localhost2:port/database_name
@@ -56,7 +58,7 @@ func getDatabaseName(url string) string {
 	return "test"
 }
 
-// 提供外部调用的接口
+// Sessioner 提供外部调用的接口
 type Sessioner interface {
 	WithLog() Sessioner
 	Close()
@@ -76,11 +78,13 @@ type Sessioner interface {
 	EnsureIndex(collection string, index mgo.Index) error
 }
 
+// DefaultSession 默认mgo的会话
 type DefaultSession struct {
 	newSession *mgo.Session
 	printLog   bool
 }
 
+// WithLog 带mongo执行命令log输出
 func (d *DefaultSession) WithLog() Sessioner {
 	d.printLog = true
 	return d
@@ -119,7 +123,7 @@ func (d *DefaultSession) Insert(collection string, a interface{}) error {
 
 // FindOne 查找一条记录
 func (d *DefaultSession) FindOne(collection string, result interface{}, selector bson.M, fields bson.M) error {
-	err := d.newSession.DB(dbName).C(collection).Find(excludeDeleted(selector)).Select(fields).One(result)
+	err := d.newSession.DB(dbName).C(collection).Find(ExcludeDeleted(selector)).Select(fields).One(result)
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
@@ -156,7 +160,7 @@ func (d *DefaultSession) FindOne(collection string, result interface{}, selector
 
 // FindAll 查找符合条件的多条记录，这里参数skip表示页码，limit表示每页多少行数据
 func (d *DefaultSession) FindAll(collection string, result interface{}, selector bson.M, fields bson.M, skip int, limit int, sort ...string) error {
-	err := d.newSession.DB(dbName).C(collection).Find(excludeDeleted(selector)).Select(fields).Sort(sort...).Skip(skip * limit).Limit(limit).All(result)
+	err := d.newSession.DB(dbName).C(collection).Find(ExcludeDeleted(selector)).Select(fields).Sort(sort...).Skip(skip * limit).Limit(limit).All(result)
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
@@ -189,14 +193,14 @@ func (d *DefaultSession) FindAll(collection string, result interface{}, selector
 	return nil
 }
 
-// Update 更新一条记录
+// UpdateOne 更新一条记录
 func (d *DefaultSession) UpdateOne(collection string, selector bson.M, update bson.M) error {
-	err := checkUpdateContent(update)
+	err := CheckUpdateContent(update)
 	if err != nil {
 		return err
 	}
 
-	err = d.newSession.DB(dbName).C(collection).Update(excludeDeleted(selector), updatedTime(update))
+	err = d.newSession.DB(dbName).C(collection).Update(ExcludeDeleted(selector), UpdatedTime(update))
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
@@ -230,14 +234,14 @@ func (d *DefaultSession) UpdateOne(collection string, selector bson.M, update bs
 	return nil
 }
 
-// Update 更新所有匹配的记录
+// UpdateAll 更新所有匹配的记录
 func (d *DefaultSession) UpdateAll(collection string, selector bson.M, update bson.M) (int, error) {
-	err := checkUpdateContent(update)
+	err := CheckUpdateContent(update)
 	if err != nil {
 		return 0, err
 	}
 
-	changeInfo, err := d.newSession.DB(dbName).C(collection).UpdateAll(excludeDeleted(selector), updatedTime(update))
+	changeInfo, err := d.newSession.DB(dbName).C(collection).UpdateAll(ExcludeDeleted(selector), UpdatedTime(update))
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
@@ -266,7 +270,7 @@ func (d *DefaultSession) UpdateAll(collection string, selector bson.M, update bs
 
 // DeleteOne 标记性删除一条记录
 func (d *DefaultSession) DeleteOne(collection string, selector bson.M) error {
-	err := d.newSession.DB(dbName).C(collection).Update(excludeDeleted(selector), deletedTime(bson.M{}))
+	err := d.newSession.DB(dbName).C(collection).Update(ExcludeDeleted(selector), DeletedTime(bson.M{}))
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
@@ -299,7 +303,7 @@ func (d *DefaultSession) DeleteOne(collection string, selector bson.M) error {
 
 // DeleteAll 标记性删除所有匹配的记录
 func (d *DefaultSession) DeleteAll(collection string, selector bson.M) (int, error) {
-	changeInfo, err := d.newSession.DB(dbName).C(collection).UpdateAll(excludeDeleted(selector), deletedTime(bson.M{}))
+	changeInfo, err := d.newSession.DB(dbName).C(collection).UpdateAll(ExcludeDeleted(selector), DeletedTime(bson.M{}))
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
@@ -400,7 +404,7 @@ func (d *DefaultSession) DeleteAllReal(collection string, selector bson.M) (int,
 
 // Count 统计匹配的数量，不包括标记性删除的记录
 func (d *DefaultSession) Count(collection string, selector bson.M) (int, error) {
-	count, err := d.newSession.DB(dbName).C(collection).Find(excludeDeleted(selector)).Count()
+	count, err := d.newSession.DB(dbName).C(collection).Find(ExcludeDeleted(selector)).Count()
 	if err != nil && err != ErrNotFound {
 		if d.printLog {
 			d.printLog = false
@@ -456,7 +460,7 @@ func (d *DefaultSession) CountAll(collection string, selector bson.M) (int, erro
 
 // FindAndModify 更新并返回最新记录
 func (d *DefaultSession) FindAndModify(collection string, result interface{}, selector bson.M, update bson.M) error {
-	err := checkUpdateContent(update)
+	err := CheckUpdateContent(update)
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
@@ -471,7 +475,7 @@ func (d *DefaultSession) FindAndModify(collection string, result interface{}, se
 	}
 
 	change := mgo.Change{ReturnNew: true, Update: update}
-	changeInfo, err := d.newSession.DB(dbName).C(collection).Find(excludeDeleted(selector)).Apply(change, result)
+	changeInfo, err := d.newSession.DB(dbName).C(collection).Find(ExcludeDeleted(selector)).Apply(change, result)
 	if err != nil {
 		if d.printLog {
 			d.printLog = false
@@ -507,7 +511,7 @@ func (d *DefaultSession) FindAndModify(collection string, result interface{}, se
 	return nil
 }
 
-// IndexSet 设置索引key
+// EnsureIndexKey 设置索引key
 func (d *DefaultSession) EnsureIndexKey(collection string, indexKeys ...string) error {
 	err := d.newSession.DB(dbName).C(collection).EnsureIndexKey(indexKeys...)
 	if err != nil {
@@ -533,7 +537,7 @@ func (d *DefaultSession) EnsureIndexKey(collection string, indexKeys ...string) 
 	return nil
 }
 
-// IndexSet 设置索引
+// EnsureIndex 设置索引
 func (d *DefaultSession) EnsureIndex(collection string, index mgo.Index) error {
 	err := d.newSession.DB(dbName).C(collection).EnsureIndex(index)
 	if err != nil {

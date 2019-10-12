@@ -1,4 +1,4 @@
-package models
+package module
 
 import (
 	"fmt"
@@ -17,10 +17,10 @@ func init() {
 	}
 }
 
-func TestUserMsg_Insert(t *testing.T) {
+func TestDemo_Insert(t *testing.T) {
 	// 插入数据，逐条插入
 	for i := 1; i <= 100; i++ {
-		e := &UserMsg{
+		e := &Demo{
 			UserID:     "1146955134308192251",
 			FileID:     "36dbff15-1d39-4bf6-8487-4476a56f3cea",
 			TaskID:     fmt.Sprintf("42207061225347891%d", i),
@@ -34,10 +34,10 @@ func TestUserMsg_Insert(t *testing.T) {
 	}
 }
 
-func TestFindUserMsg(t *testing.T) {
+func TestFindDemo(t *testing.T) {
 	taskID := "422070612253478911"
 
-	e, err := FindUserMsg(bson.M{"taskID": taskID}, nil)
+	e, err := FindDemo(bson.M{"taskID": taskID}, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -48,9 +48,9 @@ func TestFindUserMsg(t *testing.T) {
 	}
 }
 
-func TestCountUserMsgs(t *testing.T) {
+func TestCountDemos(t *testing.T) {
 	query := bson.M{"fileID": "36dbff15-1d39-4bf6-8487-4476a56f3cea"}
-	total, err := CountUserMsgs(query)
+	total, err := CountDemos(query)
 	if err != nil {
 		t.Error(err)
 		return
@@ -59,11 +59,11 @@ func TestCountUserMsgs(t *testing.T) {
 	fmt.Printf("一共有%d条记录\n", total)
 }
 
-func TestFindUserMsgs(t *testing.T) {
+func TestFindDemos(t *testing.T) {
 	query := bson.M{"fileID": "36dbff15-1d39-4bf6-8487-4476a56f3cea"}
 
 	// 获取满足条件的记录数量
-	total, _ := CountUserMsgs(query)
+	total, _ := CountDemos(query)
 	// 每页多少条记录
 	limit := 10
 	// 计算一共多少页
@@ -72,7 +72,7 @@ func TestFindUserMsgs(t *testing.T) {
 	// 查看第几页记录，从第1也开始
 	page := 5
 
-	es, err := FindUserMsgs(query, nil, page, limit)
+	es, err := FindDemos(query, nil, page, limit)
 	if err != nil {
 		t.Error(err)
 		return
@@ -87,19 +87,19 @@ func TestFindUserMsgs(t *testing.T) {
 	}
 }
 
-func TestUpdateUserMsg(t *testing.T) {
+func TestUpdateDemo(t *testing.T) {
 	expect := "36dbff15-1d39-4bf6-8487-4476a56f3ceb"
 
 	query := bson.M{"fileID": "36dbff15-1d39-4bf6-8487-4476a56f3cea"}
 	update := bson.M{"$set": bson.M{"fileID": expect}}
 
-	err := UpdateUserMsg(query, update)
+	err := UpdateDemo(query, update)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	e, err := FindUserMsg(bson.M{"fileID": expect}, nil)
+	e, err := FindDemo(bson.M{"fileID": expect}, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -110,12 +110,12 @@ func TestUpdateUserMsg(t *testing.T) {
 	}
 }
 
-func TestUpdateUserMsgs(t *testing.T) {
+func TestUpdateDemos(t *testing.T) {
 	expect := "36dbff15-1d39-4bf6-8487-4476a56f3ceb"
 	query := bson.M{"fileID": "36dbff15-1d39-4bf6-8487-4476a56f3cea"}
 	update := bson.M{"$set": bson.M{"fileID": expect}}
 
-	n, err := UpdateUserMsgs(query, update)
+	n, err := UpdateDemos(query, update)
 	if err != nil {
 		t.Error(err)
 		return
@@ -124,23 +124,23 @@ func TestUpdateUserMsgs(t *testing.T) {
 	fmt.Printf("更新成功个数 %d\n", n)
 }
 
-func TestFindAndModifyUserMsg(t *testing.T) {
+func TestFindAndModifyDemo(t *testing.T) {
 	query := bson.M{"taskID": "422070612253478911"}
 	update := bson.M{"$set": bson.M{"fileID": "36dbff15-1d39-4bf6-8487-4476a56f3ceG"}}
 
-	UserMsg, err := FindAndModifyUserMsg(query, update)
+	Demo, err := FindAndModifyDemo(query, update)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	fmt.Printf("%+v", *UserMsg)
+	fmt.Printf("%+v", *Demo)
 }
 
-func TestDeleteUserMsg(t *testing.T) {
+func TestDeleteDemo(t *testing.T) {
 	taskID := "422070612253478911"
 
-	n, err := DeleteUserMsg(bson.M{"taskID": taskID})
+	n, err := DeleteDemo(bson.M{"taskID": taskID})
 	if err != nil {
 		t.Error(err)
 		return

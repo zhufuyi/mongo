@@ -35,7 +35,7 @@ type PublicFieldsInt struct {
 	DeletedAt *time.Time `bson:"deletedAt,omitempty" json:"deletedAt,omitempty"` // 删除时间
 }
 
-// Init 初始化
+// SetFieldsValue 初始化
 func (m *PublicFieldsInt) SetFieldsValue(newID int64) {
 	t := time.Now()
 
@@ -50,8 +50,8 @@ func (m *PublicFieldsInt) SetFieldsValue(newID int64) {
 
 // ----------------------------------- 公共函数 ----------------------------------------
 
-// 执行更新操作之前先判断有没有$操作符
-func checkUpdateContent(update bson.M) error {
+// CheckUpdateContent 执行更新操作之前先判断有没有$操作符
+func CheckUpdateContent(update bson.M) error {
 	for k := range update {
 		if k[0] != '$' {
 			return errors.New("update content must start with '$'")
@@ -60,14 +60,14 @@ func checkUpdateContent(update bson.M) error {
 	return nil
 }
 
-// excludeDeleted 不包含已删除的
-func excludeDeleted(selector bson.M) bson.M {
+// ExcludeDeleted 不包含已删除的
+func ExcludeDeleted(selector bson.M) bson.M {
 	selector["deletedAt"] = bson.M{"$exists": false}
 	return selector
 }
 
-// updatedTime 更新updatedAt时间
-func updatedTime(update bson.M) bson.M {
+// UpdatedTime 更新updatedAt时间
+func UpdatedTime(update bson.M) bson.M {
 	if v, ok := update["$set"]; ok {
 		v.(bson.M)["updatedAt"] = time.Now()
 	} else {
@@ -76,8 +76,8 @@ func updatedTime(update bson.M) bson.M {
 	return update
 }
 
-// deletedTime 更新deletedAt时间
-func deletedTime(update bson.M) bson.M {
+// DeletedTime 更新deletedAt时间
+func DeletedTime(update bson.M) bson.M {
 	if v, ok := update["$set"]; ok {
 		v.(bson.M)["deletedAt"] = time.Now()
 	} else {
